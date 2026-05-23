@@ -12,6 +12,7 @@ type AppKeyRow = {
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const authCache = new Map<string, number>();
+const negativeAuthCache = new Map<string, number>();
 
 function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
@@ -39,6 +40,12 @@ export const auth: MiddlewareHandler<{ Variables: Variables }> = async (c, next)
   }
 
   const keyHash = hashKey(key);
+  const negativeCachedUntil = negativeAuthCache.get(keyHash);
+
+  if (negativeCachedUntil && negativeCachedUntil > Date.now()) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
   const cachedUntil = authCache.get(cacheKey(appId, keyHash));
 
   if (cachedUntil && cachedUntil > Date.now()) {
@@ -50,6 +57,7 @@ export const auth: MiddlewareHandler<{ Variables: Variables }> = async (c, next)
   const result = await pool.query<AppKeyRow>("select app_id from app_keys where key_hash = $1", [keyHash]);
 
   if (result.rows.length === 0) {
+    negativeAuthCache.set(keyHash, Date.now() + 10_000);
     return c.json({ error: "unauthorized" }, 401);
   }
 

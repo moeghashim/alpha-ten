@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z, ZodError } from "zod";
 import { withAppContext } from "../db.js";
 
@@ -32,49 +32,43 @@ const putBodySchema = z.object({
 
 export const documentsRoute = new Hono<{ Variables: Variables }>();
 
-async function validateScope(
+function validateScope(
   appId: string,
   collection: string,
   authedAppId: string | undefined
-): Promise<Response | null> {
+): "bad_request" | "forbidden" | null {
   if (!uuidRegex.test(appId) || !collectionRegex.test(collection)) {
-    return Response.json({ error: "bad_request" }, { status: 400 });
+    return "bad_request";
   }
 
   if (authedAppId !== appId) {
-    return Response.json({ error: "forbidden" }, { status: 403 });
+    return "forbidden";
   }
 
   return null;
 }
 
-documentsRoute.use("/:appId/:col", async (c, next) => {
-  const appId = c.req.param("appId");
-  const collection = c.req.param("col");
-  const failure = await validateScope(appId, collection, c.get("appId"));
+function scopeFailureStatus(failure: "bad_request" | "forbidden"): 400 | 403 {
+  return failure === "bad_request" ? 400 : 403;
+}
 
-  if (failure) {
-    return failure;
+function scopeFailure(c: Context<{ Variables: Variables }>, appId: string, collection: string) {
+  const failure = validateScope(appId, collection, c.get("appId"));
+  if (!failure) {
+    return null;
   }
 
-  await next();
-});
-
-documentsRoute.use("/:appId/:col/*", async (c, next) => {
-  const appId = c.req.param("appId");
-  const collection = c.req.param("col");
-  const failure = await validateScope(appId, collection, c.get("appId"));
-
-  if (failure) {
-    return failure;
-  }
-
-  await next();
-});
+  return c.json({ error: failure }, scopeFailureStatus(failure));
+}
 
 documentsRoute.get("/:appId/:col", async (c) => {
   const appId = c.req.param("appId");
   const collection = c.req.param("col");
+  const failure = scopeFailure(c, appId, collection);
+  if (failure) {
+    return failure;
+  }
+
   const parsedQuery = listQuerySchema.safeParse(c.req.query());
 
   if (!parsedQuery.success) {
@@ -113,6 +107,10 @@ documentsRoute.get("/:appId/:col/:id", async (c) => {
   const appId = c.req.param("appId");
   const collection = c.req.param("col");
   const docId = c.req.param("id");
+  const failure = scopeFailure(c, appId, collection);
+  if (failure) {
+    return failure;
+  }
 
   const row = await withAppContext(appId, async (client) => {
     const result = await client.query<DocumentRow>(
@@ -139,6 +137,11 @@ documentsRoute.put("/:appId/:col/:id", async (c) => {
   const appId = c.req.param("appId");
   const collection = c.req.param("col");
   const docId = c.req.param("id");
+  const failure = scopeFailure(c, appId, collection);
+  if (failure) {
+    return failure;
+  }
+
   const raw = await c.req.text();
 
   if (Buffer.byteLength(raw, "utf8") > maxBodyBytes) {
@@ -200,6 +203,10 @@ documentsRoute.delete("/:appId/:col/:id", async (c) => {
   const appId = c.req.param("appId");
   const collection = c.req.param("col");
   const docId = c.req.param("id");
+  const failure = scopeFailure(c, appId, collection);
+  if (failure) {
+    return failure;
+  }
 
   await withAppContext(appId, async (client) => {
     await client.query(
