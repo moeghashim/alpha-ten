@@ -7,7 +7,7 @@ export type ComposerResult = {
   runId: string;
   prUrl: string | null;
   branch: string | null;
-  status: "finished" | "failed";
+  status: "finished" | "failed" | "canceled";
   lastMessage?: string;
 };
 
@@ -48,6 +48,10 @@ function summarizeMessage(message: SDKMessage): string {
   return JSON.stringify(message).slice(0, 1_000);
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function runComposer(opts: {
   repoUrl: string;
   slug: string;
@@ -65,7 +69,9 @@ export async function runComposer(opts: {
   });
 
   const run = await agent.send(buildPrompt(opts.slug, opts.description));
+  let canceledBySignal = false;
   const abort = () => {
+    canceledBySignal = true;
     void run.cancel().catch((error: unknown) => {
       log("warn", "cursor run cancel failed", { error: String(error), runId: run.id });
     });
@@ -93,10 +99,22 @@ export async function runComposer(opts: {
       runId: run.id,
       prUrl: gitBranch?.prUrl ?? null,
       branch: gitBranch?.branch ?? null,
-      // TODO(task-04): distinguish orchestrator-triggered cancellation from Composer failure.
-      status: result.status === "finished" ? "finished" : "failed",
+      status: result.status === "finished" ? "finished" : result.status === "cancelled" ? "canceled" : "failed",
       lastMessage
     };
+  } catch (error) {
+    if (canceledBySignal || opts.signal?.aborted) {
+      return {
+        agentId: agent.agentId,
+        runId: run.id,
+        prUrl: null,
+        branch: null,
+        status: "canceled",
+        lastMessage: errorMessage(error)
+      };
+    }
+
+    throw error;
   } finally {
     opts.signal?.removeEventListener("abort", abort);
     agent.close();
