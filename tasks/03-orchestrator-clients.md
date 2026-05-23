@@ -23,7 +23,7 @@ You may not yet create `index.ts` or `routes/*` — that is task 04.
 
 ### `env.ts`
 - Parse and validate process.env with `zod`.
-- Required: `DATABASE_URL`, `CURSOR_API_KEY`, `GITHUB_TOKEN`, `GITHUB_ORG`, `GITHUB_TEMPLATE_REPO`, `RENDER_API_KEY`, `RENDER_OWNER_ID`, `DATA_API_BASE_URL`.
+- Required: `DATABASE_URL`, `CURSOR_API_KEY`, `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_TEMPLATE_REPO`, `RENDER_API_KEY`, `RENDER_OWNER_ID`, `DATA_API_BASE_URL`.
 - Optional with defaults: `PORT=8787`, `RENDER_REGION=oregon`, `RENDER_PLAN=starter`, `JOB_TIMEOUT_MS=900000` (15 min), `DEPLOY_POLL_MS=12000`.
 - Fail fast on missing values; print the missing keys.
 
@@ -42,7 +42,7 @@ getOpenPr(repo: string): Promise<{ number: number; url: string } | null>;
 mergePr(repo: string, prNumber: number): Promise<void>;
 ```
 
-- `createRepoFromTemplate` calls `POST /repos/{template_owner}/{template_repo}/generate` with `owner=GITHUB_ORG`, `name=app-{slug}-{shortId}` (use `nanoid(6)`), `private=true`, `include_all_branches=false`, `description=<truncated>`.
+- `createRepoFromTemplate` calls `POST /repos/{template_owner}/{template_repo}/generate` with `owner=GITHUB_OWNER`, `name=app-{slug}-{shortId}` (use `nanoid(6)`), `private=true`, `include_all_branches=false`, `description=<truncated>`. Note: when `owner` is a personal user account (no orgs), the authenticated `GITHUB_TOKEN` must belong to that user.
 - Poll `GET /repos/{owner}/{name}` until it returns 200 (max 30 s, 1 s interval) — generating a repo is async.
 - `mergePr` uses `PUT /repos/{owner}/{repo}/pulls/{n}/merge` with `merge_method: "squash"`.
 

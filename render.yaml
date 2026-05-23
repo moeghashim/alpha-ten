@@ -34,7 +34,7 @@ services:
         sync: false
       - key: GITHUB_TOKEN
         sync: false
-      - key: GITHUB_ORG
+      - key: GITHUB_OWNER
         sync: false
       - key: GITHUB_TEMPLATE_REPO
         sync: false

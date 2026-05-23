@@ -361,7 +361,7 @@ Poll `GET /v1/services/{id}/deploys?limit=1`; live when `status == "live"`. Reas
 Submitting `slug=plant-kanban, description="a kanban board for tracking plant care tasks"` from `alpha.tenwhy.com` must:
 
 1. Insert an `apps` row and return 202 with the id within 1 second.
-2. Cause a new GitHub repo to be created in `tenwhy-apps/plant-kanban-<shortid>`.
+2. Cause a new GitHub repo to be created in `moeghashim/app-plant-kanban-<shortid>`.
 3. Cause a Cursor cloud run to open a PR in that repo within ~5 minutes.
 4. Merge the PR automatically.
 5. Create a Render web service that finishes deploying within ~10 minutes.

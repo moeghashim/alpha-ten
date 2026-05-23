@@ -21,7 +21,7 @@ This repo is the **platform** (form/UI + orchestrator API + data API + Postgres 
 | Multi-tenant data API | Node 20 + Hono on Render → `data.alpha.tenwhy.com` |
 | Database | Single Render Postgres (apps + documents tables) |
 | Codegen | `@cursor/sdk` Cloud, model `composer-2.5` |
-| Repo host | GitHub org `tenwhy-apps`, one repo per generated app |
+| Repo host | GitHub user `moeghashim`, one repo per generated app |
 | App hosting | One Render web service per generated app, public URL = `<service>.onrender.com` |
 
 ## Local dev

@@ -9,11 +9,11 @@ Get the platform live on Render and prove the full loop end-to-end against real 
 
 ## Pre-task checklist (must be done by the human reviewer — do not attempt)
 - [ ] DNS for `alpha`, `api.alpha`, `data.alpha` `.tenwhy.com` is ready to be pointed.
-- [ ] GitHub org `tenwhy-apps` exists and `tenwhy-generated-app-template` repo is created with the contents of `templates/generated-app/` (push it as a separate repo, **set "Template repository" = true** in repo settings).
-- [ ] Cursor GitHub integration is installed on the org with access to all repos.
-- [ ] Render workspace is connected to the same GitHub org.
+- [ ] `tenwhy-generated-app-template` repo is created under `github.com/moeghashim` with the contents of `templates/generated-app/` (push it as a separate repo, **set "Template repository" = true** in repo settings).
+- [ ] Cursor GitHub integration is installed on the `moeghashim` account with access to all repos (or at least the template + generated `app-*` repos).
+- [ ] Render workspace is connected to the same GitHub account.
 - [ ] Secrets set in Render (do not commit):
-      - `CURSOR_API_KEY`, `GITHUB_TOKEN`, `GITHUB_ORG=tenwhy-apps`, `GITHUB_TEMPLATE_REPO=tenwhy-generated-app-template`,
+      - `CURSOR_API_KEY`, `GITHUB_TOKEN`, `GITHUB_OWNER=moeghashim`, `GITHUB_TEMPLATE_REPO=tenwhy-generated-app-template`,
         `RENDER_API_KEY`, `RENDER_OWNER_ID`, `PLATFORM_BASE_URL=https://alpha.tenwhy.com`,
         `DATA_API_BASE_URL=https://data.alpha.tenwhy.com`,
         `NEXT_PUBLIC_API_BASE_URL=https://api.alpha.tenwhy.com`
