@@ -86,13 +86,14 @@ export async function runComposer(opts: {
     }
 
     const result = await run.wait();
-    const gitBranch = result.git?.branches[0];
+    const gitBranch = result.git?.branches?.[0];
 
     return {
       agentId: agent.agentId,
       runId: run.id,
       prUrl: gitBranch?.prUrl ?? null,
       branch: gitBranch?.branch ?? null,
+      // TODO(task-04): distinguish orchestrator-triggered cancellation from Composer failure.
       status: result.status === "finished" ? "finished" : "failed",
       lastMessage
     };
