@@ -22,7 +22,16 @@ appsRoute.post("/", async (c) => {
     return c.json({ error: "slug_taken" }, 409);
   }
 
-  const app = await insertApp(input);
+  let app: Awaited<ReturnType<typeof insertApp>>;
+  try {
+    app = await insertApp(input);
+  } catch (error) {
+    if (isPgUniqueViolation(error)) {
+      return c.json({ error: "slug_taken" }, 409);
+    }
+
+    throw error;
+  }
   enqueue(app.id);
 
   return c.json({ id: app.id, slug: app.slug, status: "queued" }, 202);
@@ -42,4 +51,10 @@ appsRoute.get("/:id", async (c) => {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isPgUniqueViolation(error: unknown): boolean {
+  return Boolean(
+    error && typeof error === "object" && "code" in error && (error as { code?: unknown }).code === "23505"
+  );
 }

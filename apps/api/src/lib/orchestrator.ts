@@ -126,6 +126,7 @@ async function runJob(appId: string): Promise<void> {
       }
     });
     await updateApp(app.id, { render_service_id: serviceId, preview_url: serviceUrl });
+    await sleep(Math.min(env.DEPLOY_POLL_MS, remainingBudget(startedAt)), abortController.signal);
 
     while (remainingBudget(startedAt) > 0) {
       const deploy = await getLatestDeploy(serviceId);
