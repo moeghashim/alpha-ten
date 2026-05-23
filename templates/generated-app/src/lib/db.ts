@@ -60,18 +60,27 @@ async function readError(response: Response): Promise<string> {
 }
 
 export function createDb(opts: CreateDbOptions): DbClient {
-  const baseUrl = opts.baseUrl.replace(/\/$/, "");
+  function getBaseUrl(): string {
+    if (!opts.baseUrl) {
+      throw new DbError(0, "NEXT_PUBLIC_DATA_API_URL is required before using db");
+    }
+
+    return opts.baseUrl.replace(/\/$/, "");
+  }
+
+  function getHeaders(initHeaders?: HeadersInit): Headers {
+    const headers = new Headers(initHeaders);
+    headers.set("Authorization", `Bearer ${opts.key}`);
+    headers.set("X-App-Id", opts.appId);
+    headers.set("Content-Type", "application/json");
+    return headers;
+  }
 
   async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
     try {
-      const response = await fetch(`${baseUrl}${path}`, {
+      const response = await fetch(`${getBaseUrl()}${path}`, {
         ...init,
-        headers: {
-          Authorization: `Bearer ${opts.key}`,
-          "X-App-Id": opts.appId,
-          "Content-Type": "application/json",
-          ...init.headers
-        }
+        headers: getHeaders(init.headers)
       });
 
       if (!response.ok) {
