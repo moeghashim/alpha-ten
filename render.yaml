@@ -6,7 +6,7 @@ services:
     rootDir: apps/web
     plan: starter
     region: oregon
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     healthCheckPath: /
     domains:
@@ -22,7 +22,7 @@ services:
     rootDir: apps/api
     plan: starter
     region: oregon
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     healthCheckPath: /health
     domains:
@@ -56,7 +56,7 @@ services:
     rootDir: apps/data-api
     plan: starter
     region: oregon
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     healthCheckPath: /health
     domains:
@@ -75,4 +75,4 @@ databases:
   - name: tenwhy-alpha-db
     databaseName: tenwhy_alpha
     user: tenwhy_alpha
-    plan: free
+    plan: basic-256mb
