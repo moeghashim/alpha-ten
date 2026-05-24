@@ -12,10 +12,12 @@ const STEPS: Array<{ label: string; status: AppStatus }> = [
 ];
 
 const ACTIVE_STATUSES = new Set<AppStatus>(["queued", "generating", "pushing", "deploying"]);
+const STEP_INDEX_BY_STATUS = new Map<AppStatus, number>(STEPS.map((step, index) => [step.status, index]));
 
 export default function AppStatusPage({ params }: { params: { id: string } }) {
   const [app, setApp] = useState<AppRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastActiveStatus, setLastActiveStatus] = useState<AppStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,6 +32,10 @@ export default function AppStatusPage({ params }: { params: { id: string } }) {
 
         setApp(next);
         setError(null);
+
+        if (next.status !== "failed") {
+          setLastActiveStatus(next.status);
+        }
 
         if (ACTIVE_STATUSES.has(next.status)) {
           timer = setTimeout(load, 3000);
@@ -58,11 +64,11 @@ export default function AppStatusPage({ params }: { params: { id: string } }) {
     }
 
     if (app.status === "failed") {
-      return Math.max(0, STEPS.findIndex((step) => step.status === "deploying"));
+      return failedStepIndex(app, lastActiveStatus);
     }
 
-    return Math.max(0, STEPS.findIndex((step) => step.status === app.status));
-  }, [app]);
+    return STEP_INDEX_BY_STATUS.get(app.status) ?? 0;
+  }, [app, lastActiveStatus]);
 
   return (
     <main className="shell">
@@ -80,10 +86,17 @@ export default function AppStatusPage({ params }: { params: { id: string } }) {
       <section className="panel">
         <ol className="steps">
           {STEPS.map((step, index) => {
-            const state = index < currentStepIndex ? "done" : index === currentStepIndex ? "current" : "pending";
+            const state =
+              app?.status === "failed" && index === currentStepIndex
+                ? "failed"
+                : index < currentStepIndex
+                  ? "done"
+                  : index === currentStepIndex
+                    ? "current"
+                    : "pending";
             return (
               <li className={state} key={step.status}>
-                <span>{index + 1}</span>
+                <span>{state === "failed" ? "!" : index + 1}</span>
                 <p>{step.label}</p>
               </li>
             );
@@ -118,4 +131,26 @@ export default function AppStatusPage({ params }: { params: { id: string } }) {
       ) : null}
     </main>
   );
+}
+
+function failedStepIndex(app: AppRow, lastActiveStatus: AppStatus | null): number {
+  if (lastActiveStatus && lastActiveStatus !== "failed" && lastActiveStatus !== "live") {
+    return STEP_INDEX_BY_STATUS.get(lastActiveStatus) ?? 0;
+  }
+
+  const text = `${app.status_message ?? ""} ${app.error ?? ""}`.toLowerCase();
+
+  if (text.includes("render") || text.includes("deploy")) {
+    return STEP_INDEX_BY_STATUS.get("deploying") ?? 0;
+  }
+
+  if (text.includes("push") || text.includes("merge") || text.includes("github") || text.includes(" pr")) {
+    return STEP_INDEX_BY_STATUS.get("pushing") ?? 0;
+  }
+
+  if (text.includes("repo") || text.includes("composer") || text.includes("generat")) {
+    return STEP_INDEX_BY_STATUS.get("generating") ?? 0;
+  }
+
+  return STEP_INDEX_BY_STATUS.get("queued") ?? 0;
 }

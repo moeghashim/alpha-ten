@@ -168,6 +168,18 @@ button:disabled {
   color: #ffffff;
 }
 
+.steps .failed span {
+  background: #fef2f2;
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 800;
+}
+
+.steps .failed p {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;
