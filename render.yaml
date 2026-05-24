@@ -75,4 +75,4 @@ databases:
   - name: tenwhy-alpha-db
     databaseName: tenwhy_alpha
     user: tenwhy_alpha
-    plan: starter
+    plan: free
