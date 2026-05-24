@@ -90,6 +90,21 @@ export async function mergePr(repoName: string, prNumber: number): Promise<void>
   const octokit = createOctokit();
   const repo = splitRepoName(repoName);
 
+  // Cursor SDK opens PRs as drafts. Mark ready before merging so the squash
+  // merge isn't rejected with "Pull Request is still a draft".
+  const pr = await octokit.pulls.get({
+    owner: repo.owner,
+    repo: repo.repo,
+    pull_number: prNumber
+  });
+
+  if (pr.data.draft) {
+    await octokit.graphql(
+      "mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { pullRequest { isDraft } } }",
+      { id: pr.data.node_id }
+    );
+  }
+
   await octokit.pulls.merge({
     owner: repo.owner,
     repo: repo.repo,
