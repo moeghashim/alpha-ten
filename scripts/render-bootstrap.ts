@@ -87,6 +87,7 @@ async function main() {
     envVars: valuesToEnvVars({
       NEXT_PUBLIC_API_BASE_URL: env.NEXT_PUBLIC_API_BASE_URL
     }),
+    desired: serviceConfig("tenwhy-alpha-web", ownerId, "apps/web", "/"),
     create: {
       type: "web_service",
       name: "tenwhy-alpha-web",
@@ -117,6 +118,7 @@ async function main() {
       PLATFORM_BASE_URL: env.PLATFORM_BASE_URL,
       DATA_API_BASE_URL: env.DATA_API_BASE_URL
     }),
+    desired: serviceConfig("tenwhy-alpha-api", ownerId, "apps/api", "/health"),
     create: {
       type: "web_service",
       name: "tenwhy-alpha-api",
@@ -150,6 +152,7 @@ async function main() {
       MAX_BODY_BYTES: "1048576",
       RATE_LIMIT_PER_SEC: "50"
     }),
+    desired: serviceConfig("tenwhy-alpha-data", ownerId, "apps/data-api", "/health"),
     create: {
       type: "web_service",
       name: "tenwhy-alpha-data",
@@ -184,7 +187,13 @@ async function main() {
 async function ensureService(
   client: RenderClient,
   services: Map<string, RenderService>,
-  opts: { name: string; domain: string; envVars: Array<{ key: string; value: string }>; create: Record<string, unknown> }
+  opts: {
+    name: string;
+    domain: string;
+    envVars: Array<{ key: string; value: string }>;
+    desired: Record<string, unknown>;
+    create: Record<string, unknown>;
+  }
 ) {
   let service = services.get(opts.name);
 
@@ -194,10 +203,24 @@ async function ensureService(
     services.set(service.name, service);
   } else {
     console.log(`Service ${opts.name} already exists.`);
+    service = await client.updateService(service.id, opts.desired);
+    services.set(service.name, service);
   }
 
   await client.ensureEnvVars(service.id, opts.envVars);
   await client.ensureCustomDomain(service.id, opts.domain);
+}
+
+function serviceConfig(name: string, ownerId: string, rootDir: string, healthCheckPath: string) {
+  return {
+    name,
+    ownerId,
+    repo: repoUrl,
+    branch: "main",
+    autoDeploy: "yes",
+    rootDir,
+    serviceDetails: webServiceDetails(healthCheckPath)
+  };
 }
 
 function webServiceDetails(healthCheckPath: string) {
@@ -208,7 +231,7 @@ function webServiceDetails(healthCheckPath: string) {
     numInstances: 1,
     healthCheckPath,
     envSpecificDetails: {
-      buildCommand: "npm ci && npm run build",
+      buildCommand: "npm install && npm run build",
       startCommand: "npm run start"
     },
     renderSubdomainPolicy: "enabled"
@@ -238,6 +261,11 @@ class RenderClient {
 
   async createService(body: Record<string, unknown>): Promise<RenderService> {
     const response = await this.request("POST", "/services", body);
+    return response.service ?? response;
+  }
+
+  async updateService(serviceId: string, body: Record<string, unknown>): Promise<RenderService> {
+    const response = await this.request("PATCH", `/services/${serviceId}`, body);
     return response.service ?? response;
   }
 
